@@ -2,24 +2,234 @@
 
 按用户问题分类，给出具体的脚本调用链。AI 助手可参考这些模式回答用户。
 
-## 速查表
+---
 
-| 用户问什么 | 用什么脚本 | 关键步骤 |
-|-----------|-----------|---------|
-| 今天/明天有什么比赛 | `worldcup-schedule.js today/tomorrow` | 单次调用 |
-| X队下一场几点打？ | `worldcup-team.js schedule` + 筛 next | 查 teamId → 拉赛程 → 找最近 |
-| 正在直播的比赛 | `worldcup-schedule.js today` + 状态过滤 | 筛 `statusId === '1'` |
-| X队首发阵容 | `worldcup-match.js lineup` | 查该队今天比赛 → 拉阵容 |
-| X队球员列表 | `worldcup-team.js lineup` | 单次调用 |
-| X队历史战绩 | `worldcup-team.js history` | 单次调用 |
-| X球员能力如何 | `worldcup-player.js info` | 雷达图数据 |
-| X队 FIFA 排名 | `worldcup-rankings.js fifa` | 遍历查 teamName |
-| 小组出线情况 | `worldcup-rankings.js standings` | 筛 isQualified |
-| 射手榜 | `worldcup-rankings.js players 进球` | 单次调用 |
-| 某场比赛分析 | `worldcup-match.js analysis` | 查 matchId → 拉分析 |
-| 直播/比赛时间 | `worldcup-schedule.js date` | 查具体日期 |
+# 四大每日高价值工作流
+
+以下工作流专为一站式获取每日世界杯比赛分析而设计。
 
 ---
+
+## 工作流 A：每日比赛前瞻（推荐每日使用）
+
+**场景**：用户问「今天/明天有哪些比赛？怎么看？」
+
+**一键获取今日全部比赛概览**：
+```bash
+node scripts/worldcup-schedule.js today
+node scripts/worldcup-schedule.js tomorrow
+```
+
+**单场比赛深度分析**（传入 matchId）：
+```bash
+node scripts/worldcup-match.js analysis <matchId>
+node scripts/worldcup-match.js odds <matchId>
+```
+
+**实际数据示例**（明天 2026-06-14 赛程）：
+```json
+[
+  {"time": "03:00", "homeTeam": "卡塔尔", "awayTeam": "瑞士", "stage": "B组第1轮", "hot": "21"},
+  {"time": "06:00", "homeTeam": "巴西", "awayTeam": "摩洛哥", "stage": "C组第1轮", "hot": "51"},
+  {"time": "09:00", "homeTeam": "海地", "awayTeam": "苏格兰", "stage": "C组第1轮", "hot": "11"},
+  {"time": "12:00", "homeTeam": "澳大利亚", "awayTeam": "土耳其", "stage": "D组第1轮", "hot": "21"}
+]
+```
+
+**analysis 返回字段解读**：
+- `prediction.homeWinRate` / `prediction.awayWinRate` - AI 预测胜率（如"40%" / "32%"）
+- `prediction.similarOddsHistory` - 相似赔率下历史胜率（如主胜 41%、平局 28%、客胜 31%）
+- `intelligence` - 双方有利/不利情报（如"美国近5年主场对巴拉圭100%胜率"）
+- `records` - 历史交锋战绩（含胜率、赢盘率、大球率）
+- `guess` - 网友投票分布（如 66.9% 看好美国）
+
+**odds 返回字段解读**：
+- 多家博彩公司赔率数据
+- 包含亚盘（让球盘）、大小球、胜平负三种盘口
+- `initial` 初盘 / `now` 即时盘
+
+**用户追问**：
+- "这场谁更可能赢" → 从 `prediction` 读取胜率
+- "有什么看点" → 从 `intelligence` 读取双方近况分析
+- "能买吗/盘口怎么走" → 从 `odds` 读取博彩公司赔率
+- "两队历史交手谁赢得多" → 从 `records` 读取 H2H 战绩
+
+---
+
+## 工作流 B：比赛战报回顾（赛后使用）
+
+**场景**：用户问「昨晚那场比赛怎么样了？」
+
+**完整战报获取**：
+```bash
+# 1. 找到比赛（按日期）
+node scripts/worldcup-schedule.js date 2026-06-13
+
+# 2. 技术统计
+node scripts/worldcup-match.js stats <matchId>
+
+# 3. 赛况事件流（进球/红黄牌/换人）
+node scripts/worldcup-match.js live <matchId>
+
+# 4. 阵容详情
+node scripts/worldcup-match.js lineup <matchId>
+```
+
+**实际数据示例**（美国 4-1 巴拉圭）：
+
+**stats 技术统计**：
+```json
+{
+  "homeTeam": "美国", "awayTeam": "巴拉圭",
+  "items": [
+    {"name": "进球", "home": 4, "away": 1},
+    {"name": "控球率", "home": 65, "away": 35},
+    {"name": "射正", "home": 6, "away": 1},
+    {"name": "角球", "home": 3, "away": 1},
+    {"name": "黄牌", "home": 1, "away": 5}
+  ]
+}
+```
+
+**live 赛况事件流**：
+```json
+{
+  "venue": {"name": "洛杉矶体育场", "city": "洛杉矶", "capacity": "70240"},
+  "narrative": [
+    {"text": "8' - 第1个进球！博瓦迪利亚(美国 乌龙球)", "iconType": "进球"},
+    {"text": "31' - 第2个进球 - 巴洛贡(美国)", "iconType": "进球"},
+    {"text": "45+5' - 第3个进球 - 巴洛贡(美国)", "iconType": "进球"},
+    {"text": "74' - 第4个进球 - 毛里西奥(巴拉圭)", "iconType": "进球"},
+    {"text": "90+8' - 第5个进球 - 雷纳(美国)", "iconType": "进球"}
+  ],
+  "incidents": [
+    {"goalType": "乌龙球", "passedTime": "7'", "team": "美国"},
+    {"goalType": "进球", "passedTime": "31'", "team": "美国"},
+    {"goalType": "进球", "passedTime": "45'", "team": "美国"},
+    {"goalType": "进球", "passedTime": "73'", "team": "巴拉圭"},
+    {"goalType": "进球", "passedTime": "90'", "team": "美国"}
+  ]
+}
+```
+
+**用户追问**：
+- "谁进球了" → 从 `live.incidents` 过滤 `goalType: "进球"`
+- "红黄牌有哪些" → 从 `live.incidents` 过滤 `goalType: "黄牌"/"红牌"`
+- "换了几个人" → 从 `live.incidents` 过滤 `goalType: "换人"`
+- "比赛场地在哪" → 从 `venue` 读取城市和球场名称
+
+---
+
+## 工作流 C：积分榜与出线形势（每日更新）
+
+**场景**：用户问「现在各组什么情况？谁能出线？」
+
+**一键获取全部12组积分榜**：
+```bash
+node scripts/worldcup-rankings.js standings
+```
+
+**实际数据示例**（D组当前状态）：
+```json
+{
+  "groups": [{
+    "list": [
+      {"teamName": "美国", "played": 1, "winDrawLoss": "1/0/0", "goals": "4/1", "points": 3, "isQualified": true},
+      {"teamName": "澳大利亚", "played": 0, "winDrawLoss": "0/0/0", "goals": "0/0", "points": 0, "isQualified": false},
+      {"teamName": "土耳其", "played": 0, "winDrawLoss": "0/0/0", "goals": "0/0", "points": 0, "isQualified": false},
+      {"teamName": "巴拉圭", "played": 1, "winDrawLoss": "0/0/1", "goals": "1/4", "points": 0, "isQualified": false}
+    ]
+  }]
+}
+```
+
+**字段解读**：
+- `isQualified === true` → 已晋级（蓝色背景 #456de6）
+- `isRelegated === true` → 已淘汰（红色背景 #ff5050）
+- `status` 字段如"晋级32强"、"晋级待定"
+- `goals` 格式为 "进/失"（如"4/1"表示进4球失1球）
+- `winDrawLoss` 格式为 "胜/平/负"
+
+**用户追问**：
+- "A组还有希望吗" → 查该组积分差距
+- "巴西能出线吗" → 直接查巴西所在C组的 `isQualified`
+- "第三名能晋级吗" → 规则是8支小组第3晋级32强
+
+---
+
+## 工作流 D：球员表现追踪（射手榜/球员榜）
+
+**场景**：用户问「现在谁进球最多？明星球员表现如何？」
+
+**射手榜**：
+```bash
+node scripts/worldcup-rankings.js players 进球 10
+```
+
+**球员排行榜（30+维度）**：
+```bash
+node scripts/worldcup-rankings.js players 助攻
+node scripts/worldcup-rankings.js players 过人
+node scripts/worldcup-rankings.js players 射门
+node scripts/worldcup-rankings.js players 关键传球
+node scripts/worldcup-rankings.js categories  # 查看全部支持分类
+```
+
+**players 返回示例**：
+```json
+{
+  "tabName": "进球",
+  "players": [
+    {"rank": 1, "playerName": "弗拉林·巴洛贡", "team": "美国", "position": "前锋", "score": "2"},
+    {"rank": 2, "playerName": "黄仁范", "team": "韩国", "position": "中场", "score": "1"}
+  ]
+}
+```
+
+**明星球员详情深挖**：
+```bash
+node scripts/worldcup-player.js info <playerId>
+node scripts/worldcup-player.js news <playerId>
+```
+
+**player info 返回示例**（内马尔 playerId: 8b95bfb75b6abad75a141fbfee809950）：
+```json
+{
+  "wiki": {
+    "height": "175cm", "weight": "68kg",
+    "detail": {"position": "前锋", "age": "33岁", "national": "巴西"}
+  },
+  "ability": {
+    "overall": 82,
+    "radarDims": [
+      {"name": "速度", "value": 85}, {"name": "射门", "value": 86},
+      {"name": "传球", "value": 88}, {"name": "盘带", "value": 93}
+    ]
+  },
+  "transfer": {
+    "list": [
+      {"date": "2023-08-15", "team": "利雅得新月", "price": "9000万欧"},
+      {"date": "2017-08-03", "team": "巴黎圣日耳曼", "price": "22200万欧"},
+      {"date": "2013-07-01", "team": "巴塞罗那", "price": "8800万欧"}
+    ]
+  },
+  "market": {"axis": {"data": [[[{"x": 53, "y": 100}]]]}},  // 身价变化曲线
+  "honor": [
+    {"match": "南美年度足球先生", "seasons": [{"date": "2012"}]},
+    {"match": "欧冠冠军", "seasons": [{"date": "2014-2015"}]}
+  ]
+}
+```
+
+**用户追问**：
+- "姆巴佩进了几个球" → 查球员榜，按名字搜索
+- "中场谁助攻最多" → `players 助攻`
+- "这个球员什么水平" → 从 `ability.radarDims` 读取能力评分
+- "内马尔转会过几次" → 从 `transfer.list` 读取5次转会记录
+
+---
+
+# 扩展工作流
 
 ## 工作流 1：今日观赛指南
 
@@ -30,20 +240,10 @@
 node scripts/worldcup-schedule.js today
 ```
 
-**输出处理**（伪代码）：
-```js
-const matches = JSON.parse(stdout);
-for (const m of matches) {
-  const status = m.statusId === '2' ? '已结束' : 
-                 m.statusId === '1' ? '进行中' : '未开赛';
-  console.log(`${m.time} ${m.stage} ${m.homeTeam} vs ${m.awayTeam} (${status})`);
-}
-// 已结束比赛补一句比分
-```
-
-**额外增强**：
-- 用户问"哪场最值得看" → 排序 by `hot` 字段
+**扩展场景**：
+- 用户问"今天最值得看哪场" → 按 `hot` 字段排序（51最高为巴西 vs 摩洛哥）
 - 用户问"有直播吗" → 过滤 `hasLive === true`
+- 用户问"几点开球" → 从 `time` 字段读取（如"03:00"、"06:00"、"09:00"）
 
 ---
 
@@ -56,16 +256,9 @@ for (const m of matches) {
 node scripts/worldcup-schedule.js today | jq '.[] | select(.statusId=="1")'
 ```
 
-或者日期+状态组合：
-```bash
-node scripts/worldcup-schedule.js today
-# Python 过滤
-```
-
-**进一步**：对每场正在直播的比赛，可拉取实时赛况：
-```bash
-node scripts/worldcup-match.js live <matchId>
-```
+**扩展场景**：
+- 实时赛况：`node scripts/worldcup-match.js live <matchId>`
+- 实时比分：`scoreLine` 字段（如"4-1"）
 
 ---
 
@@ -75,25 +268,17 @@ node scripts/worldcup-match.js live <matchId>
 
 **执行链**：
 ```bash
-# 1. 查 teamId
 node scripts/worldcup-team.js lookup 巴西
-# 得到 teamId: b92535372efd0c6bc7df7b84b9c7b577
-
-# 2. 查赛程
-node scripts/worldcup-team.js schedule b92535372efd0c6bc7df7b84b9c7b577 世界杯
+node scripts/worldcup-team.js schedule <teamId> 世界杯
 ```
 
-**Python 处理**（找未来最近一场）：
-```python
-import json, subprocess
-from datetime import datetime
-data = json.loads(check_output(['node', 'worldcup-team.js', 'schedule', teamId, '世界杯']))
-matches = data['competitions']['世界杯']['matches']
-future = [m for m in matches if m['statusId'] == '0']  # 未开赛
-if future:
-    next_match = future[0]
-    print(f"下一场: {next_match['date']} {next_match['time']}")
-    print(f"对手: {next_match['homeTeam']} vs {next_match['awayTeam']}")
+**巴西赛程示例**：
+```json
+[
+  {"date": "2026-06-14", "time": "06:00", "homeTeam": "巴西", "awayTeam": "摩洛哥"},
+  {"date": "2026-06-20", "time": "08:30", "homeTeam": "巴西", "awayTeam": "海地"},
+  {"date": "2026-06-25", "time": "06:00", "homeTeam": "苏格兰", "awayTeam": "巴西"}
+]
 ```
 
 ---
@@ -107,180 +292,107 @@ if future:
 node scripts/worldcup-team.js lineup d885ec68c7b46dbfd4a8f6e41d577ba0
 ```
 
-**Python 处理**（按身价排序）：
-```python
-data = json.loads(check_output(['node', 'worldcup-team.js', 'lineup', teamId]))
-all_players = [p for g in data['players'] for p in g['players']]
-# 转换身价字符串为数字
-def parse_value(v):
-    if not v: return 0
-    return float(v.replace('万', '').replace('亿', '00'))  # 简单处理
-top10 = sorted(all_players, key=lambda p: parse_value(p.get('value', '0')), reverse=True)[:10]
-for p in top10:
-    print(f"{p['name']} ({p['number']}号) - {p.get('club','')} - {p.get('value','')}")
-```
+**扩展场景**：
+- 按身价排序：`value` 字段（如"1.2亿"、"800万"）
+- 按位置分组：`position` 字段
+- 教练组：`coaching` 字段
 
 ---
 
-## 工作流 5：球员详情深挖
+## 工作流 5：FIFA 排名查询
 
-**用户问**：「姆巴佩什么水平？效力哪个队？世界杯数据如何？」
-
-**执行链**：
-```bash
-# 1. 找到球员（在某球队的阵容里）
-node scripts/worldcup-team.js lineup <teamId>
-# 从 players[].players[] 找 playerId
-
-# 2. 拉详细资料（含能力雷达）
-node scripts/worldcup-player.js info <playerId>
-
-# 3. 拉赛事数据
-node scripts/worldcup-player.js stats <playerId> 2026 世界杯
-```
-
----
-
-## 工作流 6：比赛预测参考
-
-**用户问**：「X vs Y 谁更可能赢？」
+**用户问**：「中国/日本 FIFA 排名第几？」
 
 **执行**：
 ```bash
-node scripts/worldcup-match.js analysis <matchId>
+node scripts/worldcup-rankings.js fifa 50
 ```
 
-**重点提取**：
-- `prediction.homeWinRate` / `prediction.awayWinRate`（AI 胜率）
-- `prediction.similarOddsHistory`（相似赔率下历史胜负比例）
-- `intelligence`（双方近期状态对比）
-- `records`（H2H 历史战绩）
-
-**回答模板**：
-> 根据百度分析，X 胜率 35%，Y 胜率 50%。相似赔率历史中主胜占 30%。X 近期状态低迷（5场1胜），Y 状态出色（4胜2平）。
+**实际数据示例**（前10）：
+```json
+[
+  {"rank": 1, "teamName": "阿根廷", "points": 1877, "positionChanged": 2},
+  {"rank": 2, "teamName": "西班牙", "points": 1874, "positionChanged": 0},
+  {"rank": 3, "teamName": "法国", "points": 1870, "positionChanged": -2},
+  {"rank": 6, "teamName": "巴西", "points": 1765, "positionChanged": 0},
+  {"rank": 7, "teamName": "摩洛哥", "points": 1755, "positionChanged": 1}
+]
+```
 
 ---
 
-## 工作流 7：FIFA 排名查询
+## 工作流 6：球队历史 vs 当前
 
-**用户问**：「中国/日本/阿根廷 FIFA 排名第几？」
+**用户问**：「巴西队世界杯历史成绩怎么样？」
 
 **执行**：
 ```bash
-node scripts/worldcup-rankings.js fifa 100
+node scripts/worldcup-team.js history 巴西
 ```
 
-**Python 过滤**：
-```python
-data = json.loads(check_output(['node', 'worldcup-rankings.js', 'fifa', '100']))
-team_data = next((r for r in data['rankings'] if team_name in r['teamName']), None)
-if team_data:
-    change = int(team_data['positionChanged'])
-    arrow = '↑' if change > 0 else ('↓' if change < 0 else '—')
-    print(f"{team_data['teamName']}: 第{team_data['rank']}名 {team_data['points']}分 {arrow}{abs(change)}")
-```
-
----
-
-## 工作流 8：小组出线形势
-
-**用户问**：「A组现在什么情况？哪些队晋级了？」
-
-**执行**：
-```bash
-node scripts/worldcup-rankings.js standings
-```
-
-**Python 处理**：
-```python
-data = json.loads(check_output(['node', 'worldcup-rankings.js', 'standings']))
-group_a = data['groups'][0]  # A组
-for team in group_a['list']:
-    status = '✓已晋级' if team['isQualified'] else ('✗已淘汰' if team['isRelegated'] else '·待定')
-    print(f"  {status} {team['teamName']} {team['played']}场 {team['winDrawLoss']} 积分{team['points']}")
+**历史成绩示例**：
+```json
+{
+  "records": [
+    {"season": "2022年卡塔尔世界杯", "description": "止步八强，3胜1平1负"},
+    {"season": "2018年俄罗斯世界杯", "description": "止步八强，3胜1平1负"},
+    {"season": "2002年韩日世界杯", "description": "冠军，7战7胜"},
+    {"season": "1994年美国世界杯", "description": "冠军，5胜2平"}
+  ]
+}
 ```
 
 ---
 
-## 工作流 9：完整比赛报告（已结束比赛）
-
-**用户问**：「昨晚墨西哥那场比赛谁赢了？有什么精彩瞬间？」
-
-**执行链**：
-```bash
-# 1. 找到比赛
-node scripts/worldcup-schedule.js date 2026-06-12
-# 得到 matchId
-
-# 2. 比赛基本信息
-node scripts/worldcup-match.js info <matchId>
-
-# 3. 赛况（事件流+文字播报）
-node scripts/worldcup-match.js live <matchId>
-
-# 4. 技术统计
-node scripts/worldcup-match.js stats <matchId>
-```
-
-**回答模板**：
-> 墨西哥 2-0 战胜南非。第8分钟博瓦迪利亚打入一球（实际上是乌龙？），控球率 60%，射正 4-2。技术统计显示墨西哥在进攻端全面压制。
-
----
-
-## 工作流 10：跨多场次的对比
-
-**用户问**：「X组和Y组哪组竞争更激烈？」
-
-**执行**：
-```bash
-node scripts/worldcup-rankings.js standings
-```
-
-**Python 处理**：
-```python
-data = json.loads(check_output(['node', 'worldcup-rankings.js', 'standings']))
-for group_idx in [0, 1]:  # A组, B组
-    g = data['groups'][group_idx]
-    group_name = chr(ord('A') + group_idx)
-    total_goals = sum(int(t['goals'].split('/')[0]) + int(t['goals'].split('/')[1]) 
-                      for t in g['list'] if t['goals'])
-    print(f"{group_name}组: {total_goals} 总进球")
-```
-
----
-
-## 工作流 11：球队历史 vs 当前
-
-**用户问**：「巴西队世界杯历史成绩怎么样？今年能走多远？」
-
-**执行**：
-```bash
-# 历史成绩
-node scripts/worldcup-team.js history b92535372efd0c6bc7df7b84b9c7b577
-
-# 当前赛事数据
-node scripts/worldcup-team.js stats b92535372efd0c6bc7df7b84b9c7b577 2026 世界杯
-
-# 阵容
-node scripts/worldcup-team.js lineup b92535372efd0c6bc7df7b84b9c7b577
-```
-
----
-
-## 工作流 12：新闻/动态关注
+## 工作流 7：新闻/动态关注
 
 **用户问**：「C罗最近有什么新闻？」
 
 **执行链**：
 ```bash
-# 1. 找 playerId
 node scripts/worldcup-team.js lookup 葡萄牙
-# 然后 lineup 找 C罗
-node scripts/worldcup-team.js lineup <portugalId>
-# 从 players[].players[] 找 playerId
-
-# 2. 拉新闻
+node scripts/worldcup-team.js lineup <teamId>
 node scripts/worldcup-player.js news <playerId>
+```
+
+**新闻返回示例**：
+```json
+{
+  "newsList": [
+    {"title": "世界杯折射的美国例外论", "source": "虎嗅APP", "endTime": "昨天18:21"},
+    {"title": "曾经的世界第三人，过去3年仅出战49场", "source": "篮球圈里的那些事儿", "endTime": "5月29日"}
+  ]
+}
+```
+
+---
+
+## 工作流 8：球队信息快速查询
+
+**用户问**：「东道主是谁？有几支亚洲球队？」
+
+**执行**：
+```bash
+node scripts/worldcup-teams.js hosts        # 东道主（美国、加拿大、墨西哥）
+node scripts/worldcup-teams.js list         # 全部48队
+node scripts/worldcup-teams.js pot 1         # 第一档强队
+```
+
+---
+
+## 工作流 9：赛程日期范围
+
+**用户问**：「这周后半段还有什么比赛？」
+
+**执行**：
+```bash
+node scripts/worldcup-schedule.js dates     # 可用日期列表
+node scripts/worldcup-schedule.js stats      # 赛程统计
+```
+
+**stats 返回示例**：
+```json
+{"total": 16, "finished": 4, "pending": 12, "live": 0, "dateRange": {"from": "2026-06-12", "to": "2026-06-16"}}
 ```
 
 ---
@@ -288,46 +400,23 @@ node scripts/worldcup-player.js news <playerId>
 ## 错误处理模式
 
 ### 未找到球队
-```
-Error: 未找到球队: X
-```
-→ 提示用户："没找到球队X，请检查拼写。可用 `node worldcup-teams.js list` 查看所有48支球队。"
+→ 提示用户用 `node worldcup-teams.js list` 查看所有48支球队
 
-### 未找到比赛
-```
-Error: 未找到赛程 JSON 数据标记
-```
-→ 提示用户："赛程数据获取失败，可能是网络问题，请稍后重试。"
+### 赛程数据获取失败
+→ 提示用户网络问题，请稍后重试
 
-### 比赛未开赛
-```
-status: 未开赛
-matchStatusText: 未开赛
-```
-→ 拉不到 lineup（阵容未确认）→ 提示用户："该比赛阵容尚未公布，开赛前2小时左右会更新。"
+### 比赛未开赛无阵容
+→ 提示用户"阵容尚未公布，开赛前2小时左右会更新"
 
-### 比赛进行中查历史数据
-- 状态: 进行中
-- lineup 已确认但 stats 暂无
-→ 提示用户："比赛进行中，技术统计和赛况约1-2分钟延迟。"
-
----
-
-## 中文/英文球队名
-
-支持的查询方式：
-- 中文：「德国」、「巴西」、「韩国」
-- 部分匹配：「阿根」→ 阿根廷
-- 不支持英文：「Germany」需先查 teams.json
-
-如果用户用英文问，可提示用中文。
+### 比赛进行中
+→ 提示用户"技术统计和赛况约1-2分钟延迟"
 
 ---
 
 ## 注意事项
 
 - 数据延迟：实时数据 1-2 分钟延迟
-- 静态数据：teams.json 不会自动更新（如有球队变化需手动更新）
-- matchId 编码：URL 中需做 URL-encoding，脚本已自动处理
-- 球员/球队ID：跨脚本通用，可直接串联
+- 静态数据：teams.json 不会自动更新
+- matchId 编码：脚本已自动处理
+- 球员/球队ID：跨脚本通用
 - 比赛时间：均以北京时间（UTC+8）为准
