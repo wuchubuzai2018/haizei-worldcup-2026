@@ -229,6 +229,84 @@ node scripts/worldcup-player.js news <playerId>
 
 ---
 
+## 工作流 E：竞彩赔率查询（体彩官方）
+
+**用户问**：「巴西这场让几个球？/ 这场赔率多少？/ 比分赔率怎么看？/ 体彩赔率查询」
+
+**执行链**：
+
+```bash
+# 1. 精简模式：浏览所有世界杯比赛的主流玩法
+node scripts/worldcup-calculator.js summary --wc
+
+# 2. 按玩法过滤
+node scripts/worldcup-calculator.js had --wc      # 胜平负
+node scripts/worldcup-calculator.js hhad --wc     # 让球胜平负
+node scripts/worldcup-calculator.js crs --wc      # 比分
+node scripts/worldcup-calculator.js ttg --wc      # 总进球
+node scripts/worldcup-calculator.js hafu --wc     # 混合过关
+
+# 3. 按球队/日期过滤
+node scripts/worldcup-calculator.js summary --wc --team 巴西
+node scripts/worldcup-calculator.js summary --wc --date 2026-06-14
+
+# 4. 赔率变化历史（matchId 来自 --json 输出）
+node scripts/worldcup-calculator.js history <matchId> had
+```
+
+**实际数据示例**（巴西 vs 摩洛哥）：
+```
+周六006 巴西 vs 摩洛哥
+2026-06-14 06:00:00
+------------------------------------------------------------
+  胜平负     主胜:1.49   平:3.60   客胜:5.55
+  让球(-1)   主胜:2.72↑   平:3.11↓   客胜:2.27
+```
+
+JSON 输出示例：
+```json
+{
+  "matchId": 2040167,
+  "homeTeam": "巴西",
+  "awayTeam": "摩洛哥",
+  "pools": [
+    {
+      "poolCode": "had",
+      "homeWin": "1.49",
+      "draw": "3.60",
+      "awayWin": "5.55"
+    },
+    {
+      "poolCode": "hhad",
+      "goalLine": "-1",
+      "homeWin": "2.72",
+      "draw": "3.11",
+      "awayWin": "2.27"
+    }
+  ]
+}
+```
+
+**字段解读**：
+- 趋势符号：`↑` 赔率上升（庄家不看好该结果）/ `↓` 下降（庄家看好）/ 无 不变
+- `goalLine` 字段：让球数（如"-1"表示主队让 1 球，"-3"表示让 3 球）
+- crs 共 31 种比分赔率（客胜 13 + 平 5 + 主胜 13）
+
+**与百度体育赔率（worldcup-match odds）的区别**：
+| 数据源 | 覆盖 | 特点 |
+|--------|------|------|
+| 百度体育 `worldcup-match.js odds` | 亚盘/欧赔/大小球 | 多家博彩公司盘口 |
+| 体彩 `worldcup-calculator.js` | 5 种官方竞彩玩法 | 中国体彩官方，含让球数 |
+
+**用户追问**：
+- "巴西这场让几个球" → `hhad.goalLine` 字段
+- "主队胜率多少" → 1/1.49 ≈ 67%（隐含概率）
+- "比分赔率最低的是哪个" → crs 中找最小值
+- "这场的赔率在变吗" → 关注 `homeTrend`/`drawTrend`/`awayTrend` 字段
+- "赔率变化历史" → `history <matchId> <玩法>` 命令
+
+---
+
 # 扩展工作流
 
 ## 工作流 1：今日观赛指南

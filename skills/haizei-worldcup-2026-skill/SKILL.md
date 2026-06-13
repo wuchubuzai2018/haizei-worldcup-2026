@@ -1,6 +1,6 @@
 ---
 name: haizei-worldcup-2026-skill
-description: 获取2026年国际足联世界杯（美加墨世界杯）数据技能。从百度体育抓取48支参赛球队的分组配置、赛程、比赛详情（分析/阵容/赛况/统计/指数）、球队详情（资料/阵容/历史成绩/数据）、球员详情（资料/动态/数据/赛程）、排名数据（积分榜/球员榜/FIFA排名）等。当用户需要查询2026世界杯球队、赛程、比赛数据、阵容、历史成绩、排名时使用此技能。A skill for retrieving 2026 FIFA World Cup data. Scrapes from Baidu Sports.
+description: 获取2026年国际足联世界杯（美加墨世界杯）数据技能。从百度体育抓取48支参赛球队的分组配置、赛程、比赛详情（分析/阵容/赛况/统计/指数）、球队详情（资料/阵容/历史成绩/数据）、球员详情（资料/动态/数据/赛程）、排名数据（积分榜/球员榜/FIFA排名）等，并从中国体育彩票接入官方竞彩玩法赔率（胜平负/让球/比分/总进球/混合过关）。当用户需要查询2026世界杯球队、赛程、比赛数据、阵容、历史成绩、排名、竞彩赔率时使用此技能。A skill for retrieving 2026 FIFA World Cup data. Scrapes from Baidu Sports and sporttery.cn.
 ---
 
 # 2026年美加墨世界杯数据获取
@@ -43,6 +43,15 @@ description: 获取2026年国际足联世界杯（美加墨世界杯）数据技
 
 **球队配置**：`list` 48队、`group` 按组查询、`hosts` 东道主、`pot` 档位分布、`find` 模糊搜索
 
+**竞彩赔率**（`worldcup-calculator.js`，数据源：体彩官方）：
+- `had` - 胜平负赔率（主胜/平/客胜）
+- `hhad` - 让球胜平负赔率（含让球数）
+- `crs` - 比分赔率（31 种比分组合）
+- `ttg` - 总进球赔率（0-7+ 球）
+- `hafu` - 混合过关赔率（半场+全场 9 种组合）
+- `history` - 赔率变化历史（按 matchId 查询）
+- 支持 `--wc`（只显示世界杯）、`--team`、`--date`、`--json`、`summary` 模式
+
 ---
 
 ## 路由表
@@ -56,6 +65,7 @@ description: 获取2026年国际足联世界杯（美加墨世界杯）数据技
 | 球队资料 / 阵容 / 历史成绩 / 数据 | `scripts/worldcup-team.js` | [team.md](references/team.md) |
 | 球员资料 / 动态 / 数据 / 赛程 | `scripts/worldcup-player.js` | [player.md](references/player.md) |
 | 排名 / 球队榜 / 球员榜 / FIFA排名 | `scripts/worldcup-rankings.js` | [rankings.md](references/rankings.md) |
+| **竞彩赔率**（胜平负/让球/比分/总进球/混合过关） | `scripts/worldcup-calculator.js` | [calculator.md](references/calculator.md) ⭐ |
 | **典型用户问题处理** | — | [**workflows.md**](references/workflows.md) ⭐ |
 | 跨脚本组合用法 | — | [usage.md](references/usage.md) |
 
@@ -124,6 +134,20 @@ node scripts/worldcup-rankings.js categories       # 支持的30+种排行榜
 node scripts/worldcup-rankings.js knockout         # 淘汰赛对阵图
 ```
 
+### 竞彩赔率（体彩官方，数据源 sporttery.cn）
+```bash
+node scripts/worldcup-calculator.js summary --wc          # 世界杯精简模式（推荐）
+node scripts/worldcup-calculator.js had --wc              # 只看胜平负
+node scripts/worldcup-calculator.js hhad --wc             # 只看让球胜平负
+node scripts/worldcup-calculator.js crs --wc              # 只看比分赔率
+node scripts/worldcup-calculator.js ttg --wc              # 只看总进球
+node scripts/worldcup-calculator.js hafu --wc             # 只看混合过关
+node scripts/worldcup-calculator.js --wc --team 巴西      # 过滤指定球队
+node scripts/worldcup-calculator.js --wc --date 2026-06-14 # 过滤指定日期
+node scripts/worldcup-calculator.js history <matchId> had  # 赔率变化历史
+node scripts/worldcup-calculator.js --wc --json | jq .    # JSON 输出
+```
+
 ## 球员榜支持分类
 
 进球、助攻、射门、射正、过人、过人成功、任意球、击中门框、快攻、快攻射门、丢失球权、解围、有效阻挡、拦截、抢断、1对1拼抢、1对1拼抢成功、拳击球、守门员出击、守门员出击成功、高空出击、传球、传球成功、关键传球、传中球、传中球成功、长传、成功长传、传球被断、红牌、黄牌、犯规、被侵犯、越位
@@ -144,7 +168,9 @@ node scripts/worldcup-rankings.js knockout         # 淘汰赛对阵图
 
 **预测分析相关**：比赛预测、X能赢吗、盘口、赔率、胜率预测、历史交锋、美国 vs 巴拉圭、巴西 vs 摩洛哥
 
-## 四大每日高价值工作流
+**竞彩玩法相关**：竞彩、竞彩赔率、体彩、让球、让几个球、胜平负赔率、比分赔率、总进球赔率、混合过关、大小球、买球、买彩票、过关、单关、博彩、赌球、中国体彩、sporttery
+
+## 四大每日高价值工作流（+ 体彩竞彩 E）
 
 ### 工作流 A：每日比赛前瞻（推荐每日使用）
 
@@ -162,21 +188,6 @@ node scripts/worldcup-schedule.js tomorrow
 # 3. 单场深度分析（传入 matchId）
 node scripts/worldcup-match.js analysis <matchId>
 node scripts/worldcup-match.js odds <matchId>
-```
-
-**实际数据结构示例**
-
-```json
-{
-  "matchId": "5LiW55WM5p2vIzIwMjYtMDYtMTQj5be06KW/dnPmkanmtJvlk6U=",
-  "homeTeam": "巴西",
-  "awayTeam": "摩洛哥",
-  "time": "06:00",
-  "stage": "小组赛C组第1轮",
-  "status": "未开赛",
-  "hot": "51",
-  "hasLive": true
-}
 ```
 
 **analysis 返回字段**：
@@ -218,41 +229,6 @@ node scripts/worldcup-match.js stats <matchId>
 node scripts/worldcup-match.js live <matchId>
 ```
 
-**实际数据结构示例**（美国 4-1 巴拉圭）：
-
-```json
-{
-  "stats": {
-    "homeTeam": "美国",
-    "awayTeam": "巴拉圭",
-    "items": [
-      {"name": "进球", "home": 4, "away": 1},
-      {"name": "控球率", "home": 65, "away": 35},
-      {"name": "射正", "home": 6, "away": 1},
-      {"name": "角球", "home": 3, "away": 1},
-      {"name": "黄牌", "home": 1, "away": 5}
-    ]
-  },
-  "live": {
-    "venue": {"name": "洛杉矶体育场", "city": "洛杉矶", "capacity": "70240"},
-    "narrative": [
-      {"text": "8' - 第1个进球！博瓦迪利亚(美国 乌龙球)", "iconType": "进球"},
-      {"text": "31' - 第2个进球 - 巴洛贡(美国)", "iconType": "进球"},
-      {"text": "45+5' - 第3个进球 - 巴洛贡(美国)", "iconType": "进球"},
-      {"text": "90+8' - 第4个进球 - 雷纳(美国)", "iconType": "进球"},
-      {"text": "74' - 第4个进球 - 毛里西奥(巴拉圭)", "iconType": "进球"}
-    ],
-    "incidents": [
-      {"goalType": "乌龙球", "passedTime": "7'", "team": "美国"},
-      {"goalType": "进球", "passedTime": "31'", "team": "美国"},
-      {"goalType": "进球", "passedTime": "45'", "team": "美国"},
-      {"goalType": "进球", "passedTime": "73'", "team": "巴拉圭"},
-      {"goalType": "进球", "passedTime": "90'", "team": "美国"}
-    ]
-  }
-}
-```
-
 **用户追问**：
 
 - "谁进球了" → 从 `live.incidents` 过滤 `goalType: "进球"`
@@ -270,21 +246,6 @@ node scripts/worldcup-match.js live <matchId>
 
 ```bash
 node scripts/worldcup-rankings.js standings
-```
-
-**实际数据结构示例**（D组当前）：
-
-```json
-{
-  "groups": [{
-    "list": [
-      {"teamName": "美国", "played": 1, "winDrawLoss": "1/0/0", "goals": "4/1", "points": 3, "isQualified": true},
-      {"teamName": "澳大利亚", "played": 0, "winDrawLoss": "0/0/0", "goals": "0/0", "points": 0, "isQualified": false},
-      {"teamName": "土耳其", "played": 0, "winDrawLoss": "0/0/0", "goals": "0/0", "points": 0, "isQualified": false},
-      {"teamName": "巴拉圭", "played": 1, "winDrawLoss": "0/0/1", "goals": "1/4", "points": 0, "isQualified": false}
-    ]
-  }]
-}
 ```
 
 **字段解读**：
@@ -321,36 +282,14 @@ node scripts/worldcup-player.js info <playerId>
 node scripts/worldcup-player.js news <playerId>
 ```
 
-**players 返回示例**：
-
-```json
-{
-  "tabName": "进球",
-  "players": [
-    {"rank": 1, "playerName": "弗拉林·巴洛贡", "team": "美国", "position": "前锋", "score": "2"},
-    {"rank": 2, "playerName": "黄仁范", "team": "韩国", "position": "中场", "score": "1"}
-  ]
-}
-```
-
-**player info 返回示例**（内马尔）：
-
-```json
-{
-  "wiki": {"height": "175cm", "weight": "68kg", "detail": {"position": "前锋", "age": "33岁"}},
-  "ability": {"overall": 82, "radarDims": [{"name": "速度", "value": 85}, {"name": "射门", "value": 86}]},
-  "transfer": {"list": [{"date": "2023-08-15", "team": "利雅得新月", "price": "9000万欧"}]},
-  "market": {"axis": {"data": [[{"x": 53, "y": 100}]]}},  // 身价曲线
-  "honor": [{"match": "南美年度足球先生", "seasons": [{"date": "2012"}]}]
-}
-```
-
 **用户追问**：
 
 - "姆巴佩进了几个球" → 查球员榜，按名字搜索
 - "中场谁助攻最多" → `players 助攻`
 - "这个球员什么水平" → `ability.radarDims` 能力评分
 - "内马尔转会过几次" → `transfer.list` 5次转会记录
+
+> 竞彩赔率查询工作流见 [workflows.md](references/workflows.md) 工作流 E。
 
 ## 注意事项
 
@@ -361,6 +300,7 @@ node scripts/worldcup-player.js news <playerId>
 - `worldcup-team.js` 支持中文球队名自动解析为 teamId
 - 比赛时间均为北京时间（UTC+8）
 - 球员排行榜目前仅射手榜有数据，其他分类待赛事进行后丰富
+- `worldcup-calculator.js` 数据源为中国体彩官方（sporttery.cn），需用移动端 User-Agent 调用；脚本内置 30 个 UA 池每次随机选一；体彩 matchId 与百度体育 matchId 不通用；只展示可投注的赛事
 
 ## 作者
 
