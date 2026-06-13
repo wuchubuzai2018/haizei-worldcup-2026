@@ -1,8 +1,6 @@
 # 2026 美加墨世界杯数据技能
 
-> 百度体育世界杯数据抓取工具集 / Baidu Sports World Cup data scraper
-
-**2026 年美加墨国际足联世界杯** 全量数据，包括 48 支球队、赛程、比赛详情、阵容、统计、排名等。零依赖、纯 Node.js CLI 工具，可作为 OpenCode/Claude Code 等 AI 助手的 Skill 使用，也可独立运行。
+> **2026 年美加墨国际足联世界杯** 全量数据，包括 48 支球队、赛程、比赛详情、阵容、统计、排名等。零依赖、纯 Node.js CLI 工具，可作为 OpenCode/Claude Code 等 AI Agent助手的 Skill 使用，也可独立运行。
 
 ## ✨ 特性
 
@@ -14,25 +12,42 @@
 - 🛡️ **反爬措施**：30 个真实 UA 池 + 随机选取 + 完整请求头模拟
 - 📦 **零依赖**：仅使用 Node.js 内置模块（https/fs/path），无需 npm install
 
-## 🚀 快速开始
+##  🤖作为 AI Agent Skill 使用
+
+本项目按 AI Agent Skill 规范组织：
+
+1. **入口**：[`SKILL.md`](skills/haizei-worldcup-2026-skill/SKILL.md) 包含 frontmatter + 路由表
+2. **渐进式加载**：`references/*.md` 按需读取，避免上下文爆炸
+3. **跨脚本工作流**：[`workflows.md`](skills/haizei-worldcup-2026-skill/references/workflows.md) 指导 AI 回答用户问题
+4. **JSON 输出**：所有脚本返回结构化数据，AI 可直接解析
+
+### 一键安装（推荐）
+
+使用 [`skills`](https://www.npmjs.com/package/skills) CLI 一行命令安装到 OpenCode/Claude Code：
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/yourname/worldcup2026.git
-cd worldcup2026
-
-# 2. 列出 48 支球队
-node skills/haizei-worldcup-2026-skill/scripts/worldcup-teams.js list
-
-# 3. 查看今日赛程
-node skills/haizei-worldcup-2026-skill/scripts/worldcup-schedule.js today
-
-# 4. 查看 FIFA 排名前 10
-node skills/haizei-worldcup-2026-skill/scripts/worldcup-rankings.js fifa 10
-
-# 5. 查德国队阵容
-node skills/haizei-worldcup-2026-skill/scripts/worldcup-team.js lookup 德国
+npx skills add https://github.com/wuchubuzai2018/haizei-worldcup-2026
 ```
+
+该命令会自动：
+- 克隆仓库到本地
+- 找到 `skills/haizei-worldcup-2026-skill/` 目录
+- 安装到对应 AI 工具的 skills 目录
+- 注册 `haizei-worldcup-2026-skill` 为可用 skill
+
+### 手动安装
+
+如果 `skills` CLI 不可用，可以将整个 `skills/haizei-worldcup-2026-skill/` 目录复制到 AI 工具的 skills 目录：
+
+```bash
+# OpenCode
+cp -r skills/haizei-worldcup-2026-skill ~/.agents/skills/
+
+# Claude Code
+cp -r skills/haizei-worldcup-2026-skill ~/.claude/skills/
+```
+
+> ⚠️ 本项目仅供学习研究，请勿高频抓取或商业用途。
 
 ## 📁 项目结构
 
@@ -69,58 +84,24 @@ worldcup2026/
 
 ## 📖 文档导航
 
-| 文档 | 用途 |
-|------|------|
-| [SKILL.md](skills/haizei-worldcup-2026-skill/SKILL.md) | Skill 入口、路由表、快速命令 |
-| [references/workflows.md](skills/haizei-worldcup-2026-skill/references/workflows.md) | ⭐ **12 个用户场景 → 脚本调用链** |
-| [references/usage.md](skills/haizei-worldcup-2026-skill/references/usage.md) | 跨脚本组合、数据流图 |
+| 文档                                                         | 用途                              |
+| ------------------------------------------------------------ | --------------------------------- |
+| [SKILL.md](skills/haizei-worldcup-2026-skill/SKILL.md)       | Skill 入口、路由表、快速命令      |
+| [references/workflows.md](skills/haizei-worldcup-2026-skill/references/workflows.md) | ⭐ **12 个用户场景 → 脚本调用链**  |
+| [references/usage.md](skills/haizei-worldcup-2026-skill/references/usage.md) | 跨脚本组合、数据流图              |
 | [references/overview.md](skills/haizei-worldcup-2026-skill/references/overview.md) | 48 队分组一览、4 档分档、主办城市 |
-| 各 `references/<topic>.md` | 每个脚本的字段说明 |
+| 各 `references/<topic>.md`                                   | 每个脚本的字段说明                |
 
 ## 🎯 6 大脚本一览
 
-| 脚本 | 命令示例 | 输出 |
-|------|---------|------|
-| `worldcup-teams.js` | `list` `group A` `find 巴西` | 48 队配置（静态）|
-| `worldcup-schedule.js` | `today` `date 2026-06-14` `group B` `team 巴西` | 赛程（多维筛选）|
-| `worldcup-match.js` | `info/analysis/lineup/live/stats/odds <matchId>` | 单场比赛 6 tab 数据 |
-| `worldcup-team.js` | `lookup/info/schedule/lineup/history/stats <teamId>` | 单球队 6 tab 数据 |
-| `worldcup-player.js` | `info/news/stats/schedule <playerId>` | 单球员 5 tab 数据 |
-| `worldcup-rankings.js` | `standings` `fifa [N]` `players <分类>` | 排名数据 |
-
-## 🤖 作为 AI Skill 使用
-
-本项目按 OpenCode/Claude Code Skill 规范组织：
-
-1. **入口**：[`SKILL.md`](skills/haizei-worldcup-2026-skill/SKILL.md) 包含 frontmatter + 路由表
-2. **渐进式加载**：`references/*.md` 按需读取，避免上下文爆炸
-3. **跨脚本工作流**：[`workflows.md`](skills/haizei-worldcup-2026-skill/references/workflows.md) 指导 AI 回答用户问题
-4. **JSON 输出**：所有脚本返回结构化数据，AI 可直接解析
-
-将 `skills/haizei-worldcup-2026-skill/` 复制到 AI 的 skills 目录即可使用。
-
-> ⚠️ 本项目仅供学习研究，请勿高频抓取或商业用途。
-
-## 🔧 开发与扩展
-
-### 添加新抓取功能
-
-1. 在 `scripts/` 添加新 JS 文件，复用 `lib/user-agents.js`
-2. 在 `SKILL.md` 路由表添加一行
-3. 在 `references/` 添加对应字段文档
-4. 在 `workflows.md` 补充典型场景
-
-### 数据流
-
-```
-teams.json (静态) ── teamId ──→ 球队详情
-                          │
-                          ├─ teamName ──→ 赛程 ── matchId ──→ 比赛详情
-                          │
-                          └─ playerId ──→ 球员详情
-```
-
-详见 [`references/usage.md`](skills/haizei-worldcup-2026-skill/references/usage.md)
+| 脚本                   | 命令示例                                             | 输出                |
+| ---------------------- | ---------------------------------------------------- | ------------------- |
+| `worldcup-teams.js`    | `list` `group A` `find 巴西`                         | 48 队配置（静态）   |
+| `worldcup-schedule.js` | `today` `date 2026-06-14` `group B` `team 巴西`      | 赛程（多维筛选）    |
+| `worldcup-match.js`    | `info/analysis/lineup/live/stats/odds <matchId>`     | 单场比赛 6 tab 数据 |
+| `worldcup-team.js`     | `lookup/info/schedule/lineup/history/stats <teamId>` | 单球队 6 tab 数据   |
+| `worldcup-player.js`   | `info/news/stats/schedule <playerId>`                | 单球员 5 tab 数据   |
+| `worldcup-rankings.js` | `standings` `fifa [N]` `players <分类>`              | 排名数据            |
 
 ## 📊 数据来源与限制
 
@@ -132,7 +113,7 @@ teams.json (静态) ── teamId ──→ 球队详情
 
 ## ⚠️ 免责声明
 
-本项目仅供学习研究使用，数据版权归百度体育所有。请勿用于商业用途，遵守相关法律法规。
+本项目仅供学习研究使用，请勿用于商业用途，遵守相关法律法规。
 
 ## 📄 License
 
