@@ -26,3 +26,4 @@ Thumbs.db
 # 测试输出
 test_output/
 coverage/
+.agents/

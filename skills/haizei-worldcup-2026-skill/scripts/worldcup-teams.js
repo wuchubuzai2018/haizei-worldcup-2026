@@ -1,66 +1,6 @@
 #!/usr/bin/env node
 
-/**
- * 2026年世界杯球队配置查询工具
- * 从 teams.json 中读取所有参赛球队的分组、ID等配置信息
- */
-
-const fs = require('fs');
-const path = require('path');
-
-const DATA_FILE = path.join(__dirname, '..', 'data', 'teams.json');
-
-function loadTeams() {
-  const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-  return JSON.parse(raw);
-}
-
-function listAllTeams(data) {
-  const list = [];
-  for (const [group, teams] of Object.entries(data.groups)) {
-    for (const t of teams) {
-      list.push({
-        group,
-        position: t.position,
-        teamName: t.teamName,
-        teamId: t.teamId,
-        pot: t.pot,
-        isHost: !!t.isHost,
-        qualifiedTop32: !!t.qualifiedTop32
-      });
-    }
-  }
-  return list;
-}
-
-function findTeamByName(data, name) {
-  for (const [group, teams] of Object.entries(data.groups)) {
-    for (const t of teams) {
-      if (t.teamName === name || t.teamName.includes(name)) {
-        return { group, ...t };
-      }
-    }
-  }
-  return null;
-}
-
-function findTeamById(data, id) {
-  for (const [group, teams] of Object.entries(data.groups)) {
-    for (const t of teams) {
-      if (t.teamId === id) {
-        return { group, ...t };
-      }
-    }
-  }
-  return null;
-}
-
-function getGroup(data, groupKey) {
-  const key = groupKey.toUpperCase();
-  const teams = data.groups[key];
-  if (!teams) return null;
-  return { group: key, teams };
-}
+const { loadTeams, listAllTeams, findTeamByName, findTeamById, getGroup } = require('./lib/teams');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -171,13 +111,7 @@ async function main() {
   }
 }
 
-module.exports = {
-  loadTeams,
-  listAllTeams,
-  findTeamByName,
-  findTeamById,
-  getGroup
-};
+module.exports = { loadTeams, listAllTeams, findTeamByName, findTeamById, getGroup };
 
 if (require.main === module) {
   main();

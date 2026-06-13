@@ -50,14 +50,14 @@ node scripts/worldcup-match.js stats <matchId>    # 技术统计
 node scripts/worldcup-match.js odds <matchId>     # 博彩赔率
 ```
 
-### 球队详情（teamId 来自 teams.json）
+### 球队详情（支持 teamId 或中文球队名）
 ```bash
-node scripts/worldcup-team.js lookup 加拿大
-node scripts/worldcup-team.js info <teamId>       # 资料+荣誉
-node scripts/worldcup-team.js schedule <teamId>   # 该队赛程
-node scripts/worldcup-team.js lineup <teamId>     # 教练+球员
-node scripts/worldcup-team.js history <teamId>    # 历届世界杯
-node scripts/worldcup-team.js stats <teamId> 2026 世界杯
+node scripts/worldcup-team.js lookup 加拿大                            # 查 teamId
+node scripts/worldcup-team.js info 巴西                                # 资料+荣誉（自动识别）
+node scripts/worldcup-team.js schedule 巴西 世界杯                     # 该队赛程
+node scripts/worldcup-team.js lineup 法国                              # 教练+球员
+node scripts/worldcup-team.js history 加拿大                           # 历届世界杯
+node scripts/worldcup-team.js stats 巴西 2026 小组赛                   # 数据统计
 ```
 
 ### 球员详情（playerId 来自球队阵容）
@@ -89,6 +89,8 @@ node scripts/worldcup-rankings.js players 助攻 10       # 助攻榜前10
 - 赛程页默认展示约 4 天窗口，更早赛程需按日期循环查询
 - 球队配置（teams.json）为静态，仅 2026 年赛事
 - 球队/球员名仅支持中文（如"巴西"），不支持英文
+- `worldcup-team.js` 支持中文球队名自动解析为 teamId（如 `lineup 巴西` 等同 `lineup <hash>`）
+- 共用查询模块：`scripts/lib/teams.js` 提供 `loadTeams` / `findTeamByName` / `findTeamById` / `lookupTeam` / `resolveTeamId`
 - 比赛时间均为北京时间（UTC+8）
 
 ## 作者

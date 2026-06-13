@@ -9,6 +9,7 @@ const https = require('https');
 const path = require('path');
 const fs = require('fs');
 const { getRandomUserAgent } = require('./lib/user-agents');
+const { loadTeams, findTeamByName, lookupTeam, resolveTeamId, isTeamId } = require('./lib/teams');
 
 const HEADERS = {
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -292,22 +293,12 @@ async function fetchTeamData(teamId, tab = '资料', options = {}) {
   return result;
 }
 
-/**
- * 从 teams.json 加载球队列表
- */
-function loadTeams() {
-  const file = path.join(__dirname, '..', 'data', 'teams.json');
-  return JSON.parse(fs.readFileSync(file, 'utf-8'));
-}
-
-function findTeamByName(name) {
+function resolveArg(input) {
+  if (!input || isTeamId(input)) return input;
   const data = loadTeams();
-  for (const [group, teams] of Object.entries(data.groups)) {
-    for (const t of teams) {
-      if (t.teamName === name) return { ...t, group };
-    }
-  }
-  return null;
+  const team = lookupTeam(input, data);
+  if (!team) return input;
+  return team.teamId;
 }
 
 async function main() {
@@ -317,9 +308,9 @@ async function main() {
   try {
     switch (command) {
       case 'info': {
-        const teamId = args[1];
+        const teamId = resolveArg(args[1]);
         if (!teamId) {
-          console.error('Error: 请提供 teamId');
+          console.error('Error: 请提供 teamId 或球队名称');
           process.exit(1);
         }
         const data = await fetchTeamData(teamId, '资料');
@@ -328,10 +319,10 @@ async function main() {
       }
 
       case 'schedule': {
-        const teamId = args[1];
-        const competition = args[2]; // all/世界杯/国际友谊赛
+        const teamId = resolveArg(args[1]);
+        const competition = args[2];
         if (!teamId) {
-          console.error('Error: 请提供 teamId');
+          console.error('Error: 请提供 teamId 或球队名称');
           process.exit(1);
         }
         const data = await fetchTeamData(teamId, '赛程');
@@ -344,9 +335,9 @@ async function main() {
       }
 
       case 'lineup': {
-        const teamId = args[1];
+        const teamId = resolveArg(args[1]);
         if (!teamId) {
-          console.error('Error: 请提供 teamId');
+          console.error('Error: 请提供 teamId 或球队名称');
           process.exit(1);
         }
         const data = await fetchTeamData(teamId, '阵容');
@@ -355,9 +346,9 @@ async function main() {
       }
 
       case 'history': {
-        const teamId = args[1];
+        const teamId = resolveArg(args[1]);
         if (!teamId) {
-          console.error('Error: 请提供 teamId');
+          console.error('Error: 请提供 teamId 或球队名称');
           process.exit(1);
         }
         const data = await fetchTeamData(teamId, '历史成绩');
@@ -366,11 +357,11 @@ async function main() {
       }
 
       case 'stats': {
-        const teamId = args[1];
+        const teamId = resolveArg(args[1]);
         const season = args[2] || '2026';
         const scope = args[3] || '小组赛';
         if (!teamId) {
-          console.error('Error: 请提供 teamId');
+          console.error('Error: 请提供 teamId 或球队名称');
           process.exit(1);
         }
         const data = await fetchTeamData(teamId, '数据', { season, scope });
@@ -399,7 +390,8 @@ async function main() {
           console.error('Error: 请提供球队名称');
           process.exit(1);
         }
-        const team = findTeamByName(name);
+        const data = loadTeams();
+        const team = findTeamByName(data, name);
         if (!team) {
           console.error(`未找到球队: ${name}`);
           process.exit(1);
@@ -418,21 +410,21 @@ async function main() {
 
 命令:
   lookup <球队名>          通过球队名查找 teamId（从 teams.json）
-  info <teamId>            球队资料（基本资料 + 荣誉）
-  schedule <teamId> [赛事] 球队赛程（赛事可选: all/世界杯/国际友谊赛）
-  lineup <teamId>          球队阵容（教练组 + 球员按位置分组）
-  history <teamId>         历史成绩（世界杯参赛记录）
-  stats <teamId> [scope]   球队数据统计（scope: 小组赛/全部）
+  info <teamId|球队名>     球队资料（自动识别名称或ID）
+  schedule <teamId|球队名> [赛事] 球队赛程（赛事可选: all/世界杯/国际友谊赛）
+  lineup <teamId|球队名>   球队阵容（教练组 + 球员按位置分组）
+  history <teamId|球队名>  历史成绩（世界杯参赛记录）
+  stats <teamId|球队名> [赛事] [scope] 球队数据统计（scope: 小组赛/全部）
   tabs                     列出可用tab
 
 示例:
   node worldcup-team.js lookup 加拿大
   node worldcup-team.js info 35779c25e9dec553f154e9d6286925e6
-  node worldcup-team.js schedule 35779c25e9dec553f154e9d6286925e6 世界杯
-  node worldcup-team.js lineup 35779c25e9dec553f154e9d6286925e6
+  node worldcup-team.js info 巴西
+  node worldcup-team.js schedule 巴西 世界杯
+  node worldcup-team.js lineup 法国
   node worldcup-team.js history 35779c25e9dec553f154e9d6286925e6
-  node worldcup-team.js stats 35779c25e9dec553f154e9d6286925e6 2026 小组赛
-  node worldcup-team.js stats 35779c25e9dec553f154e9d6286925e6 2022 小组赛
+  node worldcup-team.js stats 巴西 2026 小组赛
 `);
         process.exit(0);
     }
